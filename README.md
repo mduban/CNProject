@@ -9,5 +9,6 @@ This repository contains one branch:
 This project contains:
 * README.md - This readme file
 * ProjectProposal.pdf(docx) - Project proposal
-* various .py files - Python code for complex networks simulation
+* main.py - Python code for complex networks power grid simulation
 * CNPresentation.pdf(pptx) - Presentation of the results
+* references.txt - references used throughout the coursework
