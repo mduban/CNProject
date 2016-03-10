@@ -1,0 +1,6 @@
+1. Graph data:
+Undirected, unweighed.
+Power grid: An undirected, unweighted network representing the topology of the Western States Power Grid of the United States. Data compiled by D. Watts and S. Strogatz and made available on the web here. Please cite D. J. Watts and S. H. Strogatz, Nature 393, 440-442 (1998). 
+http://www-personal.umich.edu/~mejn/netdata/
+
+
