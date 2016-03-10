@@ -16,6 +16,7 @@ def displayNetwork(g, visual_style={}):
 print ("Start simulation...")
 
 #Importing graph
+#The graph is undirected for this simulation. The dataset supplied contains undirected graph.
 print ("Importing graph...")
 g=igraph.load("power.gml", format="gml")
 print ("Graph imported")
@@ -33,8 +34,8 @@ consumed=0
 #This is done in dimensionless units for the purpose of this simulation
 counter=0
 for i in g.vs:
-    if counter%10==0:
-        i["cap"]=20*random.randint(100, 500)
+    if counter%30==0:
+        i["cap"]=40*random.randint(100, 500)
         prod=prod+i["cap"]
     else:
         i["cap"]=5*random.randint(-100, 5)
@@ -84,7 +85,8 @@ for i in g.vs:
     finalSumsCon+=[sumCon]
 
 #Calculating extra capacity available to each vertice
-extraCapacity=np.subtract(finalSumsCon, g.vs[:]["cap"])
+print("Extra(beyond demand) capacity available to first 21 vertices:")
+extraCapacity=np.subtract(finalSumsCon, np.absolute(g.vs[:]["cap"]))
 myFormattedList = [ '%.2f' % elem for elem in extraCapacity ]   #Formating doubles
 print(myFormattedList[0:20], numEdgesAtt[0])                    #Printing intermediate stat
 
@@ -94,12 +96,24 @@ avgEdgeBandwidth=np.sum(g.es[:]["cap"])/numEdg
 print("Net energy value: ", sum)
 print("\tEnergy produced: ", prod)
 print("\tEnergy consumed: ", consumed)
-print("Average min edge bandwidth: %.2f" % avgMinEdgeBandwidth)
+print("Average initial min edge bandwidth: %.2f" % avgMinEdgeBandwidth)
 print("Average edge bandwidth: %.2f" % avgEdgeBandwidth)
 
 
 #Displaying network
+visual_ggg={}
+visual_ggg["vertex_size"] = np.add(np.divide(np.absolute(g.vs[:]["cap"]), 600), 7)
+temp = np.divide(g.vs[:]["cap"], np.absolute(g.vs[:]["cap"]))
+temps=[]
+for i in range(0, len(temp)):
+    if temp[i] > 0:
+        temps+=["green"]
+    else:
+        temps+=["red"]
+visual_ggg["vertex_color"] = temps
+visual_ggg["edge_curved"] = 0
+visual_ggg["edge_width"] = 0.75
 #print ("Displaying network...")
-#displayNetwork(g)
+displayNetwork(g, visual_ggg)
 
 print ("Simulation finished!")
