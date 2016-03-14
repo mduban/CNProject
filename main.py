@@ -15,6 +15,8 @@ def displayNetwork(g, visual_style={}):
     
 print ("Start simulation...")
 
+MAXCHNG=0.99
+
 #Importing graph
 #The graph is undirected for this simulation. The dataset supplied contains undirected graph.
 print ("Importing graph...")
@@ -46,6 +48,7 @@ for i in g.vs:
         else:
             consumed=consumed+i["cap"]
     counter=counter+1
+    i["capCur"]=i["cap"]
 sum=prod+consumed
 
 #Calculating average minimum bandwidth(capacity) of an edge
@@ -71,6 +74,10 @@ for i in g.vs:
         for j in edges_attached:
             g.es[j]["cap"]=g.es[j]["cap"]+((abs(i["cap"])-sumCon+10)/len(edges_attached))
 
+
+for i in g.es:
+    i["cap"]*=2
+
 #Printing intermediate result
 for i in range(0, 10):
     print("Capacity of edge %d: %.2f" %(i, g.es[i]["cap"]))
@@ -80,9 +87,117 @@ finalSumsCon=[]
 for i in g.vs:
     sumCon=0
     edges_attached=g.incident(i, mode="ALL")
+    i["att"]=edges_attached
+    temp=g.es[edges_attached]["cap"]
+    for j in range(0, len(temp)):
+        temp[j]=0
+    i["attCapUsed"]=dict(zip(i["att"], temp))
     for j in edges_attached:
         sumCon=sumCon+g.es[j]["cap"]
     finalSumsCon+=[sumCon]
+
+#Balance the network
+err=0
+allPos=0
+allNeg=0
+totAvCap=prod
+maxChng=prod
+xover=1
+while allPos==0 and allNeg==0 and maxChng>MAXCHNG and xover==1:
+    if err>0:
+        break
+    allPos=1
+    allNeg=1
+    maxChng=0
+    xover=0
+    for i in g.es:
+        v1=i.source
+        v2=i.target
+        caps=[g.vs[v1]["capCur"], g.vs[v2]["capCur"]]
+        avg=(g.vs[v1]["capCur"]+g.vs[v2]["capCur"])/2
+        chng=-np.subtract(caps, [avg, avg])
+        capI=i["cap"]
+        inc1=g.vs[v1]["attCapUsed"][i.index]+chng[0]
+        inc2=g.vs[v2]["attCapUsed"][i.index]+chng[1]
+        inc1=round(inc1, 3)
+        inc2=round(inc2, 3)
+        avg=round(avg, 3)
+        chng[0]=round(chng[0], 3)
+        chng[1]=round(chng[1], 3)
+        if abs(inc1)-abs(inc2)>0.01:
+    	    print("Error! Numerical. Rounding exceeded.", abs(inc1)-abs(inc2))
+    	    err=1
+    	    break
+        inc=abs(inc1)
+        if capI>=inc:
+    	    g.vs[v1]["capCur"]+=chng[0]
+    	    g.vs[v2]["capCur"]+=chng[1]
+    	    g.vs[v1]["attCapUsed"][i.index]=inc1
+    	    g.vs[v2]["attCapUsed"][i.index]=-inc1
+        else:
+    	    if inc1>0:
+    		    inc1=capI
+    		    inc2=-capI
+    	    else:
+    		    inc1=-capI
+    		    inc2=capI
+    	    chng[0]=inc1-g.vs[v1]["attCapUsed"][i.index]
+    	    chng[1]=inc2-g.vs[v2]["attCapUsed"][i.index]
+    	    inc1=round(inc1, 3)
+    	    g.vs[v1]["attCapUsed"][i.index]=inc1
+    	    g.vs[v2]["attCapUsed"][i.index]=-inc1
+    	    g.vs[v1]["capCur"]+=chng[0]
+    	    g.vs[v2]["capCur"]-=chng[0]
+    	    g.vs[v1]["capCur"]=round(g.vs[v1]["capCur"], 3)
+    	    g.vs[v2]["capCur"]=round(g.vs[v2]["capCur"], 3)
+        if g.vs[v1]["capCur"]<0 or g.vs[v2]["capCur"]<0:
+    	    allPos=0
+        if g.vs[v1]["capCur"]>=0 or g.vs[v2]["capCur"]>=0:
+    	    allNeg=0
+        if abs(chng[1])>maxChng:
+            maxChng=abs(chng[1])
+        if abs(chng[0])>maxChng:
+            maxChng=abs(chng[0])
+        if (caps[0]<=0 and g.vs[v1]["capCur"]>=0) or (caps[1]<=0 and g.vs[v2]["capCur"]>=0):
+            xover=1
+        if (caps[0]>=0 and g.vs[v1]["capCur"]<=0) or (caps[1]>=0 and g.vs[v2]["capCur"]<=0):
+            xover=1
+    for h in g.vs:
+        tempsum=0
+        for hh in h["att"]:
+            tempsum=tempsum+g.es[hh]["cap"]-max(0, h["attCapUsed"][hh])
+        if (h["capCur"]+tempsum)<0:
+            print("Error! System unbalancable.")
+            err=2
+            break
+        tempsum=0
+        for hh in h["att"]:
+            tempsum=tempsum+g.es[hh]["cap"]+min(0, h["attCapUsed"][hh])
+        if (h["capCur"]-tempsum)>0:
+            totAvCap-=(h["capCur"]-tempsum)
+        if totAvCap<-consumed:
+            print("Error! System unbalancable.")
+            err=2
+            break
+    print(maxChng)
+        
+print(totAvCap-consumed, v1, v2, avg, caps, chng, capI, i.index, inc1, inc2, inc)
+print(allPos, allNeg, maxChng)
+
+#Printing info on the network state
+allPos=1
+for i in g.vs:
+    if i["capCur"]<0:
+        #print("ID: ", i["id"], " Cap: ", i["capCur"])
+        allPos=0
+if allPos==1:
+    print("All vertices are satisfied!")
+if allNeg==1:
+    print("Not enough load")
+if allNeg==0 and allPos==0:
+    print("System unbalancable")
+if xover==0:
+    print("No crossover!")
 
 #Calculating extra capacity available to each vertice
 print("Extra(beyond demand) capacity available to first 21 vertices:")
@@ -99,11 +214,42 @@ print("\tEnergy consumed: ", consumed)
 print("Average initial min edge bandwidth: %.2f" % avgMinEdgeBandwidth)
 print("Average edge bandwidth: %.2f" % avgEdgeBandwidth)
 
+#Up to here we set up a network with given capacities.
+#Now, we will attempt to break it and see what happens.
+#Whether we can maintain supply of electricity to each vertice after nodes are removed.
+#This is initial estimate looking just at peak energy transfer. This is considering full inward transfer.
+
+nodeToRemove=random.randint(0, numVer)
+print("We will remove node: ", nodeToRemove)
+
+g.delete_vertices(nodeToRemove)
+
+finalSumsCon=[]
+for i in g.vs:
+    sumCon=0
+    edges_attached=g.incident(i, mode="ALL")
+    for j in edges_attached:
+        sumCon=sumCon+g.es[j]["cap"]
+    finalSumsCon+=[sumCon]
+
+counter=0
+adjuster=0
+extraCapacity=np.subtract(finalSumsCon, np.subtract(0, g.vs[:]["cap"]))
+for i in extraCapacity:
+    if counter>=nodeToRemove:
+        adjuster=1
+    if i < 0:
+        print("Not enough capacity in vertice: ", counter+adjuster, " missing: ", abs(i), " delivered: ", finalSumsCon[counter], " consumes: ", -g.vs[counter]["cap"])
+    counter+=1
+
+
+print("Check", g.vs[0])
+#Done initial checking.
 
 #Displaying network
 visual_ggg={}
-visual_ggg["vertex_size"] = np.add(np.divide(np.absolute(g.vs[:]["cap"]), 600), 7)
-temp = np.divide(g.vs[:]["cap"], np.absolute(g.vs[:]["cap"]))
+visual_ggg["vertex_size"] = np.add(np.divide(np.absolute(g.vs[:]["capCur"]), 600), 7)
+temp = np.divide(g.vs[:]["capCur"], np.absolute(g.vs[:]["capCur"]))
 temps=[]
 for i in range(0, len(temp)):
     if temp[i] > 0:
