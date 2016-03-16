@@ -233,7 +233,6 @@ print(myFormattedList[0:20], numEdgesAtt[0])                    #Printing interm
 avgEdgeBandwidth=np.sum(g.es[:]["cap"])/numEdg
 extraTotalBandwidth=np.sum(g.es[:]["cap"])-np.sum(g.es[:]["capCur"])
 
-
 #Network energy data aggregates presented
 print("Net energy value: ", sum)
 print("\tEnergy produced: ", prod)
@@ -249,7 +248,7 @@ for i in g.es:
         peakBandwidth+=[i.index]
 print("Edges close to or at peakBandwidth: ", peakBandwidth)
 
-displayGraph(g)
+#displayGraph(g)
 
 if not balanced:
     sys.exit()
@@ -326,5 +325,7 @@ else:
 print("Check", g.vs[0])
 print("Check2", g.es[0])
 #Done initial checking.
+
+#displayGraph(g)
 
 print ("Simulation finished!")
