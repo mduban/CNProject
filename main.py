@@ -31,6 +31,7 @@ def displayGraph(g):
     #print ("Displaying network...")
     displayNetwork(g, visual_ggg)
 
+#This function balances a network supplied to the function
 def balanceNetwork(g, MAXCHNG):
     err=0
     allPos=0
