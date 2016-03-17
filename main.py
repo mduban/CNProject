@@ -39,6 +39,7 @@ def balanceNetwork(g, MAXCHNG):
     totAvCap=prod
     maxChng=prod
     xover=1
+    #Repeat the process until the network is balanced
     while allPos==0 and allNeg==0 and maxChng>MAXCHNG and xover==1:
         if err>0:
             break
@@ -46,30 +47,39 @@ def balanceNetwork(g, MAXCHNG):
         allNeg=1
         maxChng=0
         xover=0
+        #Go through all edges and average their ends - perform balancing between the nodes
         for i in g.es:
             v1=i.source
             v2=i.target
+            #We compute the average of the two nodes. Then we will try to set it as electricity load.
             caps=[g.vs[v1]["capCur"], g.vs[v2]["capCur"]]
             avg=(g.vs[v1]["capCur"]+g.vs[v2]["capCur"])/2
+            #The change in load during this balancing step.
             chng=-np.subtract(caps, [avg, avg])
             capI=i["cap"]
+            #We set the capacity used by each edge connected to the node. (INComing load)
             inc1=g.vs[v1]["attCapUsed"][i.index]+chng[0]
             inc2=g.vs[v2]["attCapUsed"][i.index]+chng[1]
+            #We round data to ignore ridiculous amount of decimal places and decrease chance of numerical error.
             inc1=round(inc1, 3)
             inc2=round(inc2, 3)
             avg=round(avg, 3)
             chng[0]=round(chng[0], 3)
             chng[1]=round(chng[1], 3)
+            #Numerical error due to rounding is caught here
             if abs(inc1)-abs(inc2)>0.01:
         	    print("Error! Numerical. Rounding exceeded.", abs(inc1)-abs(inc2))
         	    err=1
         	    break
             inc=abs(inc1)
+            #If average capacity of the nodes can be handled by the edge, set it.
             if capI>=inc:
+                #We set the current capacity.
         	    g.vs[v1]["capCur"]+=chng[0]
         	    g.vs[v2]["capCur"]+=chng[1]
         	    g.vs[v1]["attCapUsed"][i.index]=inc1
         	    g.vs[v2]["attCapUsed"][i.index]=-inc1
+            #Otherwise, we set the transfer at peak available to this edge.
             else:
         	    if inc1>0:
         		    inc1=capI
@@ -77,28 +87,35 @@ def balanceNetwork(g, MAXCHNG):
         	    else:
         		    inc1=-capI
         		    inc2=capI
+                #Change in the load is set.
         	    chng[0]=inc1-g.vs[v1]["attCapUsed"][i.index]
         	    chng[1]=inc2-g.vs[v2]["attCapUsed"][i.index]
         	    inc1=round(inc1, 3)
         	    g.vs[v1]["attCapUsed"][i.index]=inc1
         	    g.vs[v2]["attCapUsed"][i.index]=-inc1
+                #Current capacity is updated.
         	    g.vs[v1]["capCur"]+=chng[0]
         	    g.vs[v2]["capCur"]-=chng[0]
         	    g.vs[v1]["capCur"]=round(g.vs[v1]["capCur"], 3)
         	    g.vs[v2]["capCur"]=round(g.vs[v2]["capCur"], 3)
+            #Check if all nodes are positive. Is so, then the network will be satisfied. Quit.
             if g.vs[v1]["capCur"]<0 or g.vs[v2]["capCur"]<0:
         	    allPos=0
+            #Check if all nodes are negative. If so the network cannot be satisifed. Quit.
             if g.vs[v1]["capCur"]>=0 or g.vs[v2]["capCur"]>=0:
         	    allNeg=0
+            #Update the maximum change in this iteration
             if abs(chng[1])>maxChng:
                 maxChng=abs(chng[1])
             if abs(chng[0])>maxChng:
                 maxChng=abs(chng[0])
+            #Check wether a crossover from negative to positive capacity happend if not, then it wil not happen. Quit
             if (caps[0]<=0 and g.vs[v1]["capCur"]>=0) or (caps[1]<=0 and g.vs[v2]["capCur"]>=0):
                 xover=1
             if (caps[0]>=0 and g.vs[v1]["capCur"]<=0) or (caps[1]>=0 and g.vs[v2]["capCur"]<=0):
                 xover=1
             i["capCur"]=abs(inc1)
+        #Check wether positive load of each node can be utilised i.e. if there are edges to transfer it out. If not, decrease the total load available. Quit.
         for h in g.vs:
             tempsum=0
             for hh in h["att"]:
@@ -116,17 +133,18 @@ def balanceNetwork(g, MAXCHNG):
                 print("Error! System unbalancable.")
                 err=2
                 break
+        #Print max change of capacity in this iteration
         print(maxChng)
-            
+           
+    #Intermediate results. 
     print(totAvCap-consumed, v1, v2, avg, caps, chng, capI, i.index, inc1, inc2, inc)
     print(allPos, allNeg, maxChng)
     
-    #Printing info on the network state
+    #Printing info on the network state. What is its status after balancing.
     allPos=1
     balanced=False
     for i in g.vs:
         if i["capCur"]<0:
-            #print("ID: ", i["id"], " Cap: ", i["capCur"])
             allPos=0
     if allPos==1:
         print("All vertices are satisfied!")
@@ -297,6 +315,7 @@ for i in extraCapacity:
         networkCanHandleLoad=0
     counter+=1
 
+#Now, we will balance the network again after removing a node.
 if networkCanHandleLoad==0:
     print("Electricity supply network cannot handle removing node ", nodeToRemove, ". Capacity connected to this node is too small to satisfy the demand after node removed.")
 else:
