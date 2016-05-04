@@ -3,7 +3,7 @@
 #Mateusz Dubaniowski
 #PhD Researcher
 #Singapore-ETH Centre
-#18 March 2016
+#4 May 2016
 
 import igraph
 import numpy as np
@@ -137,7 +137,6 @@ def balanceNetwork(g, MAXCHNG):
         print(maxChng)
            
     #Intermediate results. 
-    print(totAvCap-consumed, v1, v2, avg, caps, chng, capI, i.index, inc1, inc2, inc)
     print(allPos, allNeg, maxChng)
     
     #Printing info on the network state. What is its status after balancing.
@@ -276,7 +275,7 @@ if not balanced:
 #Whether we can maintain supply of electricity to each vertice after nodes are removed.
 #This is initial estimate looking just at peak energy transfer. This is considering full inward transfer.
 
-nodeToRemove=random.randint(0, numVer)
+nodeToRemove=random.randint(0, numVer-1)
 print("We will remove node: ", nodeToRemove)
 
 g.delete_vertices(nodeToRemove)
@@ -324,7 +323,7 @@ else:
     avgEdgeBandwidth=np.sum(g.es[:]["cap"])/numEdg
     extraTotalBandwidth=np.sum(g.es[:]["cap"])-np.sum(g.es[:]["capCur"])
 
-
+    sum=prod+consumed
     #Network energy data aggregates presented
     print("Num edges: ", len(g.es), "Num vertices: ", len(g.vs))
     print("Net energy value: ", sum)
