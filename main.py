@@ -163,7 +163,7 @@ MAXCHNG=0.99
 #Importing graph
 #The graph is undirected for this simulation. The dataset supplied contains undirected graph.
 print ("Importing graph...")
-g=igraph.load("power.gml", format="gml")
+g=igraph.load("test.gml", format="gml")
 print ("Graph imported")
 
 #Number of vertices and number of edges
@@ -222,7 +222,7 @@ for i in g.es:
     i["cap"]*=20
 
 #Printing intermediate result
-for i in range(0, 10):
+for i in range(0, 1):
     print("Capacity of edge %d: %.2f" %(i, g.es[i]["cap"]))
 
 #Total sum of capacities connected to each vertice
@@ -268,83 +268,82 @@ print("Edges close to or at peakBandwidth: ", peakBandwidth)
 
 #displayGraph(g)
 
-if not balanced:
-    sys.exit()
-#Up to here we set up a network with given capacities.
-#Now, we will attempt to break it and see what happens.
-#Whether we can maintain supply of electricity to each vertice after nodes are removed.
-#This is initial estimate looking just at peak energy transfer. This is considering full inward transfer.
+if balanced:
+    #Up to here we set up a network with given capacities.
+    #Now, we will attempt to break it and see what happens.
+    #Whether we can maintain supply of electricity to each vertice after nodes are removed.
+    #This is initial estimate looking just at peak energy transfer. This is considering full inward transfer.
 
-nodeToRemove=random.randint(0, numVer-1)
-print("We will remove node: ", nodeToRemove)
+    nodeToRemove=random.randint(0, numVer-1)
+    print("We will remove node: ", nodeToRemove)
 
-g.delete_vertices(nodeToRemove)
+    g.delete_vertices(nodeToRemove)
 
-#Rebuild network data. Total capacities connected to each vertice.
-finalSumsCon=[]
-prod=0
-consumed=0
-for i in g.vs:
-    i["capCur"]=i["cap"]
-    sumCon=0
-    edges_attached=g.incident(i, mode="ALL")
-    i["att"]=edges_attached
-    temp=g.es[edges_attached]["cap"]
-    prod+=max(0, i["cap"])
-    consumed+=min(0, i["cap"])
-    for j in range(0, len(temp)):
-        temp[j]=0
-    i["attCapUsed"]=dict(zip(i["att"], temp))
-    for j in edges_attached:
-        sumCon=sumCon+g.es[j]["cap"]
-    finalSumsCon+=[sumCon]
-for i in g.es:
-    i["capCur"]=0
-
-#Checking if network even has a chance of delivering electricity to each node
-networkCanHandleLoad=1
-counter=0
-adjuster=0
-extraCapacity=np.subtract(finalSumsCon, np.subtract(0, g.vs[:]["cap"]))
-for i in extraCapacity:
-    if counter>=nodeToRemove:
-        adjuster=1
-    if i < 0:
-        print("Not enough capacity in vertice: ", counter+adjuster, " missing: ", abs(i), " delivered: ", finalSumsCon[counter], " consumes: ", -g.vs[counter]["cap"])
-        networkCanHandleLoad=0
-    counter+=1
-
-#Now, we will balance the network again after removing a node.
-if networkCanHandleLoad==0:
-    print("Electricity supply network cannot handle removing node ", nodeToRemove, ". Capacity connected to this node is too small to satisfy the demand after node removed.")
-else:
-    print("We will now attempt balancing the network after node ", nodeToRemove, " is removed...")
-    [g, balanced]=balanceNetwork(g, MAXCHNG)
-    avgEdgeBandwidth=np.sum(g.es[:]["cap"])/numEdg
-    extraTotalBandwidth=np.sum(g.es[:]["cap"])-np.sum(g.es[:]["capCur"])
-
-    sum=prod+consumed
-    #Network energy data aggregates presented
-    print("Num edges: ", len(g.es), "Num vertices: ", len(g.vs))
-    print("Net energy value: ", sum)
-    print("\tEnergy produced: ", prod)
-    print("\tEnergy consumed: ", consumed)
-    print("Average edge bandwidth: %.2f" % avgEdgeBandwidth)
-    print("Extra bandwidth available in the whole network: ", extraTotalBandwidth)
-
-    #Edges at peak bandwidth
-    peakBandwidth=[]
+    #Rebuild network data. Total capacities connected to each vertice.
+    finalSumsCon=[]
+    prod=0
+    consumed=0
+    for i in g.vs:
+        i["capCur"]=i["cap"]
+        sumCon=0
+        edges_attached=g.incident(i, mode="ALL")
+        i["att"]=edges_attached
+        temp=g.es[edges_attached]["cap"]
+        prod+=max(0, i["cap"])
+        consumed+=min(0, i["cap"])
+        for j in range(0, len(temp)):
+            temp[j]=0
+        i["attCapUsed"]=dict(zip(i["att"], temp))
+        for j in edges_attached:
+            sumCon=sumCon+g.es[j]["cap"]
+        finalSumsCon+=[sumCon]
     for i in g.es:
-        if i["capCur"]>=0.9*i["cap"]:
-            peakBandwidth+=[i.index]
-    print("Edges close to or at peakBandwidth: ", peakBandwidth)
-    if balanced:
-        print("\nSUCCESS!\nRemoval of node ", nodeToRemove, "can be handled by this network.")
+        i["capCur"]=0
 
-print("Check", g.vs[0])
-print("Check2", g.es[0])
-#Done initial checking.
+    #Checking if network even has a chance of delivering electricity to each node
+    networkCanHandleLoad=1
+    counter=0
+    adjuster=0
+    extraCapacity=np.subtract(finalSumsCon, np.subtract(0, g.vs[:]["cap"]))
+    for i in extraCapacity:
+        if counter>=nodeToRemove:
+            adjuster=1
+        if i < 0:
+            print("Not enough capacity in vertice: ", counter+adjuster, " missing: ", abs(i), " delivered: ", finalSumsCon[counter], " consumes: ", -g.vs[counter]["cap"])
+            networkCanHandleLoad=0
+        counter+=1
 
-#displayGraph(g)
+    #Now, we will balance the network again after removing a node.
+    if networkCanHandleLoad==0:
+        print("Electricity supply network cannot handle removing node ", nodeToRemove, ". Capacity connected to this node is too small to satisfy the demand after node removed.")
+    else:
+        print("We will now attempt balancing the network after node ", nodeToRemove, " is removed...")
+        [g, balanced]=balanceNetwork(g, MAXCHNG)
+        avgEdgeBandwidth=np.sum(g.es[:]["cap"])/numEdg
+        extraTotalBandwidth=np.sum(g.es[:]["cap"])-np.sum(g.es[:]["capCur"])
 
-print ("Simulation finished!")
+        sum=prod+consumed
+        #Network energy data aggregates presented
+        print("Num edges: ", len(g.es), "Num vertices: ", len(g.vs))
+        print("Net energy value: ", sum)
+        print("\tEnergy produced: ", prod)
+        print("\tEnergy consumed: ", consumed)
+        print("Average edge bandwidth: %.2f" % avgEdgeBandwidth)
+        print("Extra bandwidth available in the whole network: ", extraTotalBandwidth)
+
+        #Edges at peak bandwidth
+        peakBandwidth=[]
+        for i in g.es:
+            if i["capCur"]>=0.9*i["cap"]:
+                peakBandwidth+=[i.index]
+        print("Edges close to or at peakBandwidth: ", peakBandwidth)
+        if balanced:
+            print("\nSUCCESS!\nRemoval of node ", nodeToRemove, "can be handled by this network.")
+
+    print("Check", g.vs[0])
+    print("Check2", g.es[0])
+    #Done initial checking.
+
+    #displayGraph(g)
+
+    print ("Simulation finished!")
