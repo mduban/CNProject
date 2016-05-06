@@ -163,7 +163,7 @@ MAXCHNG=0.99
 #Importing graph
 #The graph is undirected for this simulation. The dataset supplied contains undirected graph.
 print ("Importing graph...")
-g=igraph.load("test.gml", format="gml")
+g=igraph.load("power.gml", format="gml")
 print ("Graph imported")
 
 #Number of vertices and number of edges
